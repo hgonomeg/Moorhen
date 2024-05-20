@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title> utils/MoorhenCommandCentre.ts</title>
+
+  <script src="https://cdn.jsdelivr.net/gh/google/code-prettify@master/loader/run_prettify.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="./build/entry.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+  <link href="https://fonts.googleapis.com/css?family=Roboto:100,400,700|Inconsolata,700" rel="stylesheet">
+  <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+  <link type="text/css" rel="stylesheet" href="https://jmblog.github.io/color-themes-for-google-code-prettify/themes/tomorrow-night.min.css">
+  <link type="text/css" rel="stylesheet" href="styles/app.min.css">
+  <link type="text/css" rel="stylesheet" href="styles/iframe.css">
+  <link type="text/css" rel="stylesheet" href="docs.styles.css">
+  <script async defer src="https://buttons.github.io/buttons.js"></script>
+
+  
+</head>
+
+
+
+<body class="layout small-header">
+    <div id="stickyNavbarOverlay"></div>
+    
+
+<div class="top-nav">
+    <div class="inner">
+        <a id="hamburger" role="button" class="navbar-burger" aria-label="menu" aria-expanded="false">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+        <div class="logo">
+             
+                <a class="image" href="index.html">
+                    <img src="./MoorhenLogo.png" alt="logo">
+                </a>
+            
+             
+                <a href="index.html">
+                    <h1 class="navbar-item">Moorhen Developer Documentation</h1>
+                </a>
+            
+        </div>
+        <div class="menu">
+            
+            <div class="navigation">
+                <a
+                    href="index.html"
+                    class="link"
+                >
+                    Documentation
+                </a>
+                
+                 
+                    
+                        <a
+                            class="link user-link "
+                            href="https://github.com/moorhen-coot/Moorhen"
+                        >
+                            Github
+                        </a>
+                    
+                        <a
+                            class="link user-link "
+                            href="https://moorhen-coot.github.io/wiki/"
+                        >
+                            Moorhen Wiki
+                        </a>
+                    
+                
+                
+            </div>
+        </div>
+    </div>
+</div>
+    <div id="main">
+        <div
+            class="sidebar "
+            id="sidebarNav"
+        >
+            
+                <div class="search-wrapper">
+                    <input id="search" type="text" placeholder="Search docs..." class="input">
+                </div>
+            
+            <nav>
+                
+                    <h2><a href="index.html">Documentation</a></h2><div class="category"><h3>Classes</h3><ul><li><a href="MoorhenCommandCentre.html">MoorhenCommandCentre</a></li><li><a href="MoorhenMap.html">MoorhenMap</a></li><li><a href="MoorhenMolecule.html">MoorhenMolecule</a></li><li><a href="MoorhenPreferences.html">MoorhenPreferences</a></li><li><a href="MoorhenTimeCapsule.html">MoorhenTimeCapsule</a></li></ul><h3>Global</h3><ul><li><a href="global.html#MoorhenContainer">MoorhenContainer</a></li><li><a href="global.html#MoorhenDraggableModalBase">MoorhenDraggableModalBase</a></li><li><a href="global.html#MoorhenMapSelect">MoorhenMapSelect</a></li><li><a href="global.html#MoorhenMoleculeSelect">MoorhenMoleculeSelect</a></li><li><a href="global.html#loadSessionData">loadSessionData</a></li><li><a href="global.html#loadSessionFromJsonString">loadSessionFromJsonString</a></li><li><a href="global.html#loadSessionFromProtoMessage">loadSessionFromProtoMessage</a></li></ul></div>
+                
+            </nav>
+        </div>
+        <div class="core" id="main-content-wrapper">
+            <div class="content">
+                <header class="page-title">
+                    <p>Source</p>
+                    <h1>utils/MoorhenCommandCentre.ts</h1>
+                </header>
+                
+
+
+
+    
+    <section>
+        <article>
+            <pre class="prettyprint source linenums"><code>import { v4 as uuidv4 } from 'uuid';
+import { MoorhenHistory } from "./MoorhenHistory"
+import { moorhen } from "../types/moorhen"
+import { webGL } from '../types/mgWebGL';
+
+/**
+ * A command centre used to communicate between Moorhen and a web worker running an instance of the 
+ * headless libcoot API
+ * @property {Worker} cootWorker - A web worker holding a headless libcoot instance
+ * @constructor
+ * @param {string} urlPrefix - The root url used to find the baby-gru/CootWorker.js worker file
+ * @param {function} onConsoleChanged - Callback executed whenever the worker prints a message to the console
+ * @param {function} onCommandStart - Callback executed whenever a new command is issued to the web worker
+ * @param {function} onCommandExit - Callback executed whenever a new command is completed by the web worker
+ * @param {function} onActiveMessagesChanged  - Callback executed whenever a new message is received from the worker
+ * @param {function} onCootInitialized - Callback executed once after coot is initialised in the web worker
+ * @property {function} cootCommand - Runs a coot command
+ * @property {moorhen.History} history - An object that contains the command history
+ * @example
+ * import { MoorhenCommandCentre } from "moorhen";
+ * 
+ * commandCentre = new MoorhenCommandCentre({
+ *  onActiveMessagesChanged: (newActiveMessages) => {
+ *      setBusy(newActiveMessages.length !== 0)
+ *  },
+ *  onCootInitialized: () => {
+ *      setCootInitialized(true)
+ *  },
+ *      urlPrefix: urlPrefix
+ * })
+ * 
+ * await props.commandCentre.current.cootCommand({
+ *  returnType: 'status',
+ *  command: 'flipPeptide_cid',
+ *  commandArgs: [0, "//A/150"],
+ * })
+ * 
+ */
+export class MoorhenCommandCentre implements moorhen.CommandCentre {
+    urlPrefix: string;
+    cootWorker: Worker;
+    activeMessages: moorhen.WorkerMessage[];
+    history: moorhen.History;
+    isClosed: boolean;
+    onCootInitialized: null | ( () => void );
+    onConsoleChanged: null | ( (msg: string) => void );
+    onCommandStart : null | ( (kwargs: any) => void );
+    onCommandExit : null | ( (kwargs: any) => void );
+    onActiveMessagesChanged: null | ( (activeMessages: moorhen.WorkerMessage[]) => void );
+
+    constructor(urlPrefix: string, glRef: React.RefObject&lt;webGL.MGWebGL>, timeCapsule: React.RefObject&lt;moorhen.TimeCapsule>, props: {[x: string]: any}) {
+        this.activeMessages = []
+        this.urlPrefix = urlPrefix
+        this.isClosed = false
+        this.history = new MoorhenHistory(glRef, timeCapsule)
+        this.history.setCommandCentre(this)
+        
+        this.onConsoleChanged = null
+        this.onCommandStart = null
+        this.onCommandExit = null
+        this.onActiveMessagesChanged = null
+
+        Object.keys(props).forEach(key => this[key] = props[key])
+    }
+    
+    async init() {
+        this.isClosed = false
+        this.cootWorker = new Worker(`${this.urlPrefix}/baby-gru/CootWorker.js`)
+        this.cootWorker.onmessage = this.handleMessage.bind(this)
+        await this.postMessage({ message: 'CootInitialize', data: {} })
+        if (this.onCootInitialized) {
+            this.onCootInitialized()
+        }
+    }
+    
+    async close() {
+        if (!this.isClosed) {
+            this.isClosed = true
+            await this.postMessage({ message: 'close', data: { } })
+            this.cootWorker.removeEventListener("message", this.handleMessage)
+            this.cootWorker.terminate()    
+        } else {
+            console.warn('Command centre already closed, doing nothing...')
+        }
+    }
+
+    handleMessage(reply: moorhen.WorkerResponse) {
+        this.activeMessages.filter(
+            message => message.messageId &amp;&amp; (message.messageId === reply.data.messageId)
+        ).forEach(message => {
+            message.handler(reply)
+        })
+        this.activeMessages = this.activeMessages.filter(
+            message => message.messageId !== reply.data.messageId
+        )
+        if (this.onActiveMessagesChanged) {
+            this.onActiveMessagesChanged(this.activeMessages)
+        }
+    }
+    
+    makeHandler(resolve) {
+        return (reply) => {
+            resolve(reply)
+        }
+    }
+    
+    async cootCommand(kwargs: moorhen.cootCommandKwargs, doJournal: boolean = true): Promise&lt;moorhen.WorkerResponse> {
+        const message = "coot_command"
+        console.log('In cootCommand', kwargs.command)
+        if (this.onCommandStart) {
+            this.onCommandStart({...kwargs, doJournal})
+        }
+        const result = await this.postMessage({ message, ...kwargs })
+        if (doJournal) {
+            await this.history.addEntry(kwargs)
+        }
+        if (this.onCommandExit) {
+            this.onCommandExit({...kwargs, doJournal})
+        }
+        return result
+    }
+    
+    async cootCommandList(commandList: moorhen.cootCommandKwargs[], doJournal: boolean = true): Promise&lt;moorhen.WorkerResponse> {
+        const message = "coot_command_list"
+        console.log('In cootCommandList', commandList)
+        if (this.onCommandStart) {
+            commandList.forEach(commandKwargs => this.onCommandStart(commandKwargs))
+        }
+        if (doJournal) {
+            await Promise.all(commandList.map(commandKwargs => this.history.addEntry(commandKwargs)))
+        }
+        const result = await this.postMessage({ message, commandList })
+        if (this.onCommandExit) {
+            commandList.forEach(commandKwargs => this.onCommandExit(commandKwargs))
+        }
+        return result
+    }
+
+    postMessage(kwargs: moorhen.cootCommandKwargs): Promise&lt;moorhen.WorkerResponse> {
+        const $this = this
+        const messageId = uuidv4()
+        return new Promise((resolve, reject) => {
+            const handler = $this.makeHandler(resolve)
+            this.activeMessages.push({ messageId, handler, kwargs })
+            if (this.onActiveMessagesChanged) {
+                this.onActiveMessagesChanged(this.activeMessages)
+            }
+            this.cootWorker.postMessage({
+                messageId, myTimeStamp: Date.now(), ...kwargs
+            })
+        })
+    }
+}
+</code></pre>
+        </article>
+    </section>
+
+
+
+
+            </div>
+            
+            <footer class="footer">
+                <div class="content has-text-centered">
+                    <p>Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 4.0.3</a></p>
+                    <p class="sidebar-created-by">
+                        <a href="https://github.com/SoftwareBrothers/better-docs" target="_blank">BetterDocs theme</a> provided with <i class="fas fa-heart"></i> by
+                        <a href="http://softwarebrothers.co" target="_blank">SoftwareBrothers - JavaScript Development Agency</a>
+                    </p>
+                </div>
+            </footer>
+            
+        </div>
+        <div id="side-nav" class="side-nav">
+        </div>
+    </div>
+<script src="scripts/app.min.js"></script>
+<script>PR.prettyPrint();</script>
+<script src="scripts/linenumber.js"> </script>
+
+<script src="scripts/search.js"> </script>
+
+
+</body>
+</html>
